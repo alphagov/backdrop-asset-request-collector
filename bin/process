@@ -1,0 +1,3 @@
+#!/bin/sh
+CMD=`echo "$0" | sed 's/process$/separate-query-string.awk/'`
+LANG=C LC_ALL=C exec "gawk" "-f" "$CMD" "$@"
