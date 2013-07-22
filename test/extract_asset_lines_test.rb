@@ -76,6 +76,6 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
       asset_line(date: "2013-07-08"),
       asset_line(date: "2013-07-08")
     ])
-    assert_equal expected, processed_lines
+    assert_equal expected.sort, processed_lines.sort
   end
 end

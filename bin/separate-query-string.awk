@@ -42,15 +42,12 @@ $STATUS ~ /^(200|304)$/ && is_asset($URL) {
 # address.
 $STATUS == "206" && is_asset($URL) {
   $URL = url_without_query_string($URL)
-  partial_responses[$URL][$IP][$DATE] += 1
+  partial_responses[$DATE, $IP, $URL] += 1
 }
 
 END {
-  for (url in partial_responses) {
-    for (ip in partial_responses[url]) {
-      for (date in partial_responses[url][ip]) {
-        print date, url
-      }
-    }
+  for (date_ip_url in partial_responses) {
+    split(date_ip_url, parts, SUBSEP)
+    print parts[1], parts[3]
   }
 }
