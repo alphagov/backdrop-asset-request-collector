@@ -20,7 +20,7 @@ BIN_PATH=`cd "$BIN_DIR"; pwd`
 
 cd "$DATA_DIR"
 if [ ! -e "$PROCESSED_DIR" ]; then
-  mkdir "$PROCESSED_DIR"
+  mkdir -p "$PROCESSED_DIR"
 fi
 shopt -s nullglob
 echo "Processing files in '`pwd`'"

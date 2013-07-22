@@ -2,6 +2,17 @@
 require 'fileutils'
 require 'date'
 
+if ARGV.size < 3
+  puts "USAGE: #{File.basename(__FILE__)} <processed dir> <aggregate dir> <date>"
+  puts %q{
+Generates per-day aggregated file for the specified date. Date should be in
+YYYY-MM-DD format. If the output file exists, will only update it if there are
+newer input files.
+}
+
+  exit(1)
+end
+
 (processed_dir, aggregate_dir, date) = ARGV
 
 FileUtils.mkdir_p(aggregate_dir)
@@ -13,11 +24,14 @@ end
 pattern = File.join(processed_dir, '/*.{' + dates_to_consider.join(',') + '}*.stats.gz')
 files = Dir[pattern]
 
-if files.any?
-  puts "Processing #{files.size} files"
+output_file = "#{aggregate_dir}/#{date}.txt"
+if !files.any?
+  puts "No files found for date #{date}"
+elsif File.exist?(output_file) && files.all? { |f| File.mtime(f) <= File.mtime(output_file) }
+  puts "#{File.basename(output_file)} up-to-date"
+else
+  puts "Processing #{files.size} files for #{date}"
   ENV['LANG']='C'
   ENV['LC_ALL']='C'
-  exec "gzip -dc #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk > #{aggregate_dir}/#{date}.txt"
-else
-  puts "No files found for date #{date}"
+  exec %Q{gzip -dc #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk > "#{output_file}"}
 end

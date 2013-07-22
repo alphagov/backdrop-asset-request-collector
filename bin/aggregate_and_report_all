@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'date'
+require 'shellwords'
+require 'yaml'
+
+if ARGV.size < 2
+  puts "USAGE: #{File.basename(__FILE__)} <logs dir> <workspace dir>"
+  puts %q{
+Processes, agreggates and posts all data to backdrop.
+
+Within the <workspace dir>, the following folders are created for intermediate files:
+
+  /processed - intermediary gzipped stats files (one per incoming log file)
+  /aggregated - daily aggregate files with counts per url
+  /posted - timestamps recording successful posting of aggregated stats
+}
+
+  exit(1)
+end
+
+logs_dir = ARGV[0]
+workspace_dir = ARGV[1]
+processed_dir = File.join(workspace_dir, "processed")
+aggregated_dir = File.join(workspace_dir, "aggregated")
+posted_dir = File.join(workspace_dir, "posted")
+FileUtils.mkdir_p(posted_dir)
+bindir = File.dirname(__FILE__)
+config_dir = File.expand_path("../config", File.dirname(__FILE__))
+lib_dir = File.expand_path("../lib", File.dirname(__FILE__))
+$: << lib_dir
+
+require 'backdrop_reporter'
+
+def run_subprocess(*args)
+  # using Process.spawn connects to this process's STDOUT so log output is seen incrementally
+  Process.spawn Shellwords.join(args)
+  Process.wait
+  $?.success? || raise("Error running #{args.first}")
+end
+
+run_subprocess(File.join(bindir, "extract_asset_lines"), logs_dir, processed_dir)
+dates = Dir[File.join(processed_dir, "*.stats.gz")].map do |file_path|
+  match = /^[^\.]+.[^\.]+.([0-9]{8})[^\.]+$/.match(File.basename(file_path, ".stats.gz"))
+  if match
+    match[1]
+  else
+    nil
+  end
+end.compact.uniq
+
+dates.each do |date|
+  year = date[0..3]
+  month = date[4..5]
+  day = date[6..7]
+  run_subprocess(File.join(bindir, "aggregate"), processed_dir, aggregated_dir, "#{year}-#{month}-#{day}")
+end
+
+config = YAML.load_file(File.join(config_dir, "config.yml"))
+
+logger = Logger.new(STDOUT)
+RestClient.log = logger
+reporter = BackdropReporter.new(
+  aggregated_dir,
+  posted_dir,
+  backdrop_endpoint: config['backdrop_endpoint'],
+  bearer_token: config['bearer_token'],
+  logger: logger
+)
+reporter.report!

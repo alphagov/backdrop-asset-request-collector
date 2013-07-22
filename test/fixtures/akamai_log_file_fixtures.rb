@@ -34,6 +34,7 @@ module AkamaiLogFileFixtures
         f.write(line.join("\t") + "\n")
       end
     end
+    path
   end
 
   def comment_line
