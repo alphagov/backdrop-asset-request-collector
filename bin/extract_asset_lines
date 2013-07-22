@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ -z "$1" ]; then
+  echo "USAGE: $0 <data dir>"
+cat <<END_DESCRIPTION
+
+Extracts asset lines from all log files in <data dir> (expects gzipped files).
+Creates a subdirectory called 'processed' and writes corresponding files in
+there with '.stats' extension.
+
+END_DESCRIPTION
+  exit
+fi
+
+DATA_DIR="$1"
+OLD_DIR="$PWD"
+BIN_DIR=`dirname "$0"`
+BIN_PATH=`cd "$BIN_DIR"; pwd`
+
+cd "$DATA_DIR"
+if [ ! -e processed ]; then
+  mkdir processed
+fi
+shopt -s nullglob
+pwd
+for file in *.gz; do
+  TEMP_OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats.tmp/'`
+  OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats/'`
+  echo "Processing ${file} -> ${OUTPUT_FILE}"
+  (gzcat "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
+done
+
+cd $OLD_DIR
