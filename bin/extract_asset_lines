@@ -22,7 +22,7 @@ if [ ! -e processed ]; then
   mkdir processed
 fi
 shopt -s nullglob
-pwd
+echo "Processing files in '`pwd`'"
 for file in *.gz; do
   TEMP_OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats.tmp/'`
   OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats/'`

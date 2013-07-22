@@ -3,7 +3,6 @@ require 'minitest/autorun'
 require 'open3'
 require 'fileutils'
 require 'tmpdir'
-require 'zlib'
 
 $: << File.dirname(__FILE__)
 require 'helpers/command_line_invoker'
@@ -20,17 +19,7 @@ class AggregationTest < MiniTest::Unit::TestCase
   end
 
   def teardown
-    # FileUtils.remove_entry_secure(@tempdir)
-  end
-
-  def make_logfile(name, &block)
-    data = yield.join("\n") + "\n"
-    path = "#{@logs_dir}/#{name}"
-    File.open(path, 'w') do |f|
-      gz = Zlib::GzipWriter.new(f)
-      gz.write(data)
-      gz.close
-    end
+    FileUtils.remove_entry_secure(@tempdir)
   end
 
   def test_aggregating_one_log_file_creates_a_file_per_day_with_counts_per_url

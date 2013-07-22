@@ -1,3 +1,5 @@
+require 'zlib'
+
 module AkamaiLogFileFixtures
   def all_log_field_names
     %w{date time ip method uri status bytes time-taken referer user-agent cookie x-wafinfo}
@@ -13,6 +15,16 @@ module AkamaiLogFileFixtures
     all_log_field_names.map do |field_name|
       data[field_name.to_sym] || ""
     end.join("\t")
+  end
+
+  def make_logfile(name, &block)
+    data = yield.join("\n") + "\n"
+    path = "#{@logs_dir}/#{name}"
+    File.open(path, 'w') do |f|
+      gz = Zlib::GzipWriter.new(f)
+      gz.write(data)
+      gz.close
+    end
   end
 
   def comment_line
