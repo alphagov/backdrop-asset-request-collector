@@ -25,11 +25,13 @@ fi
 shopt -s nullglob
 echo "Processing files in '`pwd`'"
 for file in *.gz; do
-  TEMP_OUTPUT_FILE=`echo "${PROCESSED_DIR}/${file}" | sed 's/\.gz$/.stats.tmp.gz/'`
+  TEMP_OUTPUT_FILE=`echo "${PROCESSED_DIR}/${file}" | sed 's/\.gz$/.stats.tmp/'`
   OUTPUT_FILE=`echo "${PROCESSED_DIR}/${file}" | sed 's/\.gz$/.stats.gz/'`
   if [ "${file}" -nt "${OUTPUT_FILE}" ]; then
     echo "Processing ${file} -> ${OUTPUT_FILE}"
-    (gzip -dc "${file}" | "${BIN_PATH}/process" | gzip -c > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
+    (gzip -dc "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && \
+      gzip -c "${TEMP_OUTPUT_FILE}" > "${TEMP_OUTPUT_FILE}.gz" && \
+      mv "${TEMP_OUTPUT_FILE}.gz" "${OUTPUT_FILE}"
   fi
 done
 
