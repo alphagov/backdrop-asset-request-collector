@@ -15,6 +15,7 @@ class AggregationTest < MiniTest::Unit::TestCase
   def setup
     @tempdir = Dir.mktmpdir("backdrop-asset-request-collector-aggregation-test-")
     @logs_dir = "#{@tempdir}/logs"
+    @processed_dir = "#{@tempdir}/processed"
     FileUtils.mkdir_p(@logs_dir)
   end
 
@@ -26,11 +27,10 @@ class AggregationTest < MiniTest::Unit::TestCase
     make_logfile("gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz") do
       [asset_line(status: 200, uri: "/example.com/foo.pdf")]
     end
-    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir])
+    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir, @processed_dir])
 
-    processed_dir = File.join(@logs_dir, "processed")
     aggregate_dir = File.join(@logs_dir, "aggregated")
-    invoke(%Q{aggregate}, "", {}, [processed_dir, aggregate_dir, '2013-07-09'])
+    invoke(%Q{aggregate}, "", {}, [@processed_dir, aggregate_dir, '2013-07-09'])
 
     aggregate_file = File.join(aggregate_dir, "2013-07-09.txt")
     assert File.exist?(aggregate_file), "#{aggregate_file} should exist"
@@ -49,11 +49,10 @@ class AggregationTest < MiniTest::Unit::TestCase
         end
       end
     end
-    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir])
+    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir, @processed_dir])
 
-    processed_dir = File.join(@logs_dir, "processed")
     aggregate_dir = File.join(@logs_dir, "aggregated")
-    invoke(%Q{aggregate}, "", {}, [processed_dir, aggregate_dir, target_date])
+    invoke(%Q{aggregate}, "", {}, [@processed_dir, aggregate_dir, target_date])
 
     # there will have been one line for target_date in each of the in_range files
     expected_log_line_count = in_range_dates.size

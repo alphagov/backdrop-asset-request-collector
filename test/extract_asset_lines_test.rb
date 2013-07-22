@@ -2,6 +2,7 @@ require 'minitest/unit'
 require 'minitest/autorun'
 require 'open3'
 require 'tmpdir'
+require 'zlib'
 
 $: << File.dirname(__FILE__)
 require 'helpers/command_line_invoker.rb'
@@ -11,9 +12,17 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
   include CommandLineInvoker
   include AkamaiLogFileFixtures
 
+  def assert_similar_time(expected, actual)
+    difference = (expected - actual).abs
+    assert difference < 3, "exepected #{expected} to be within 3 seconds of #{actual} but was #{difference} seconds away"
+  end
+
   def setup
     @tempdir = Dir.mktmpdir("backdrop-asset-request-collector-extract-asset-lines-test-")
     @logs_dir = "#{@tempdir}/logs"
+    @processed_dir = "#{@tempdir}/processed"
+    @input_log_filename = "gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz"
+    @output_log_filename = "gdslog_184926.esw3c_waf_S.201307092000-2400-1.stats.gz"
     FileUtils.mkdir_p(@logs_dir)
   end
 
@@ -28,9 +37,11 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
   end
 
   def run_extract_asset_lines(log_lines)
-    make_logfile("gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz") { log_lines }
-    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir])
-    File.read(File.join(@logs_dir, "processed", "gdslog_184926.esw3c_waf_S.201307092000-2400-1.stats")).split("\n")
+    make_logfile(@input_log_filename) { log_lines }
+    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir, @processed_dir])
+    Zlib::GzipReader.open(File.join(@processed_dir, @output_log_filename)) do |f|
+      f.read
+    end.split("\n")
   end
 
   def test_only_date_and_uri_output
@@ -77,5 +88,15 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
       asset_line(date: "2013-07-08")
     ])
     assert_equal expected.sort, processed_lines.sort
+  end
+
+  def test_does_not_generate_output_if_existing_output_is_newer
+    FileUtils.mkdir_p(@processed_dir)
+    output_file = File.join(@processed_dir, @output_log_filename)
+    FileUtils.touch(output_file, mtime: Time.now - (60*60))
+    processed_lines = run_extract_asset_lines([asset_line])
+    assert_similar_time Time.now, File.mtime(output_file)
+    FileUtils.touch(output_file, mtime: Time.now + (60*60))
+    assert_similar_time Time.now + (60*60), File.mtime(output_file)
   end
 end

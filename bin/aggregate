@@ -10,8 +10,8 @@ target_date = Date.parse(date)
 dates_to_consider = (-1..2).map do |day_offset|
   (target_date + day_offset).strftime("%Y%m%d")
 end
-files = Dir[File.join(processed_dir, '/*.{' + dates_to_consider.join(',') + '}*.stats')]
+files = Dir[File.join(processed_dir, '/*.{' + dates_to_consider.join(',') + '}*.stats.gz')]
 
 ENV['LANG']='C'
 ENV['LC_ALL']='C'
-exec "cat #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk > #{aggregate_dir}/#{date}.txt"
+exec "gzip -dc #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk > #{aggregate_dir}/#{date}.txt"

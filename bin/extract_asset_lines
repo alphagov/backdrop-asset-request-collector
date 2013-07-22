@@ -1,11 +1,11 @@
 #!/bin/bash
 
 if [ -z "$1" ]; then
-  echo "USAGE: $0 <data dir>"
+  echo "USAGE: $0 <data dir> <destination dir>"
 cat <<END_DESCRIPTION
 
 Extracts asset lines from all log files in <data dir> (expects gzipped files).
-Creates a subdirectory called 'processed' and writes corresponding files in
+Creates a <destination dir> if it does not exist and writes corresponding files in
 there with '.stats' extension.
 
 END_DESCRIPTION
@@ -13,21 +13,24 @@ END_DESCRIPTION
 fi
 
 DATA_DIR="$1"
+PROCESSED_DIR="$2"
 OLD_DIR="$PWD"
 BIN_DIR=`dirname "$0"`
 BIN_PATH=`cd "$BIN_DIR"; pwd`
 
 cd "$DATA_DIR"
-if [ ! -e processed ]; then
-  mkdir processed
+if [ ! -e "$PROCESSED_DIR" ]; then
+  mkdir "$PROCESSED_DIR"
 fi
 shopt -s nullglob
 echo "Processing files in '`pwd`'"
 for file in *.gz; do
-  TEMP_OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats.tmp/'`
-  OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats/'`
-  echo "Processing ${file} -> ${OUTPUT_FILE}"
-  (gzip -dc "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
+  TEMP_OUTPUT_FILE=`echo "${PROCESSED_DIR}/${file}" | sed 's/\.gz$/.stats.tmp.gz/'`
+  OUTPUT_FILE=`echo "${PROCESSED_DIR}/${file}" | sed 's/\.gz$/.stats.gz/'`
+  if [ "${file}" -nt "${OUTPUT_FILE}" ]; then
+    echo "Processing ${file} -> ${OUTPUT_FILE}"
+    (gzip -dc "${file}" | "${BIN_PATH}/process" | gzip -c > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
+  fi
 done
 
 cd $OLD_DIR
