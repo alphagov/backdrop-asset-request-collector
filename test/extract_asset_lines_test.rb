@@ -6,16 +6,13 @@ require 'zlib'
 
 $: << File.dirname(__FILE__)
 require 'helpers/command_line_invoker.rb'
+require 'helpers/custom_assertions.rb'
 require 'fixtures/akamai_log_file_fixtures.rb'
 
 class ExtractAssetLinesTest < MiniTest::Unit::TestCase
   include CommandLineInvoker
   include AkamaiLogFileFixtures
-
-  def assert_similar_time(expected, actual)
-    difference = (expected - actual).abs
-    assert difference < 3, "exepected #{expected} to be within 3 seconds of #{actual} but was #{difference} seconds away"
-  end
+  include CustomAssertions
 
   def setup
     @tempdir = Dir.mktmpdir("backdrop-asset-request-collector-extract-asset-lines-test-")

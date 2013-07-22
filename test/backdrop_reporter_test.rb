@@ -3,60 +3,69 @@ require 'minitest/autorun'
 require 'open3'
 require 'fileutils'
 require 'tmpdir'
+require 'mocha/setup'
 
 $: << File.dirname(__FILE__)
+$: << File.dirname(File.dirname(__FILE__))
 require 'helpers/command_line_invoker'
+require 'helpers/custom_assertions.rb'
 require 'fixtures/akamai_log_file_fixtures'
+
+require 'lib/backdrop_reporter'
 
 class BackdropReporterTest < MiniTest::Unit::TestCase
   include CommandLineInvoker
+  include CustomAssertions
+  include AkamaiLogFileFixtures
 
   def setup
     @tempdir = Dir.mktmpdir("backdrop-asset-request-collector-aggregation-test-")
     @logs_dir = "#{@tempdir}/logs"
     @aggregated_dir = "#{@tempdir}/aggregated"
+    @posted_dir = "#{@tempdir}/posted"
+    @backdrop_endpoint = "example.com"
     FileUtils.mkdir_p(@logs_dir)
+    FileUtils.mkdir_p(@aggregated_dir)
+    FileUtils.mkdir_p(@posted_dir)
   end
 
   def teardown
     FileUtils.remove_entry_secure(@tempdir)
   end
 
-  def test_aggregating_one_log_file_creates_a_file_per_day_with_counts_per_url
-    make_logfile("gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz") do
-      [asset_line(status: 200, uri: "/example.com/foo.pdf")]
-    end
-    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir, @processed_dir])
+  def test_calculates_payload_batches_from_aggregated_data
+    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
+    reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
-    aggregate_dir = File.join(@logs_dir, "aggregated")
-    invoke(%Q{aggregate}, "", {}, [@processed_dir, aggregate_dir, '2013-07-09'])
+    only_expected_payload = [
+      {
+        _id: "2013-07-09-/example.com/example.pdf",
+        _timestamp: "2013-07-09",
+        count: "5"
+      }
+    ]
 
-    aggregate_file = File.join(aggregate_dir, "2013-07-09.txt")
-    assert File.exist?(aggregate_file), "#{aggregate_file} should exist"
-    assert_equal "1\t/example.com/foo.pdf\n", File.read(aggregate_file)
+    expected_payload_batches = [["2013-07-09", only_expected_payload]]
+    assert_equal expected_payload_batches, reporter.payload_batches.to_a
   end
 
-  def test_aggregating_multiple_log_files_merges_files_from_one_day_before_and_two_days_after
-    target_date = "2013-07-09"
-    in_range_dates = ["2013-07-08", target_date, "2013-07-10", "2013-07-11"]
-    dates = ["2013-07-07"] + in_range_dates + ["2013-07-12"]
-    dates.each do |date|
-      file_date = date.gsub(/-/, '')
-      make_logfile("gdslog_184926.esw3c_waf_S.#{file_date}2000-2400-1.gz") do
-        dates.map do |asset_line_date|
-          asset_line(date: asset_line_date, status: 200, uri: "/example.com/foo.pdf")
-        end
-      end
-    end
-    invoke(%Q{extract_asset_lines}, "", {}, [@logs_dir, @processed_dir])
+  def test_payload_batches_exclude_already_posted_files
+    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
+    FileUtils.touch(File.join(@posted_dir, "2013-07-09.txt"))
+    reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
-    aggregate_dir = File.join(@logs_dir, "aggregated")
-    invoke(%Q{aggregate}, "", {}, [@processed_dir, aggregate_dir, target_date])
+    assert_equal [], reporter.payload_batches.to_a
+  end
 
-    # there will have been one line for target_date in each of the in_range files
-    expected_log_line_count = in_range_dates.size
+  def test_posts_all_batches_and_touches_a_posting_file
+    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
+    reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
-    aggregate_file = File.join(aggregate_dir, "#{target_date}.txt")
-    assert_equal "#{expected_log_line_count}\t/example.com/foo.pdf\n", File.read(aggregate_file)
+    _, batch = reporter.payload_batches.first
+    RestClient.expects(:post).with(@backdrop_endpoint, MultiJson.dump(batch), anything)
+
+    reporter.report!
+
+    assert_similar_time Time.now, File.mtime(File.join(@posted_dir, "2013-07-09.txt"))
   end
 end

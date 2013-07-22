@@ -27,6 +27,15 @@ module AkamaiLogFileFixtures
     end
   end
 
+  def make_aggregate_file(name, data=nil, &block)
+    path = "#{@aggregated_dir}/#{name}"
+    File.open(path, 'w') do |f|
+      (data || yield).each do |line|
+        f.write(line.join("\t") + "\n")
+      end
+    end
+  end
+
   def comment_line
     "# Comment"
   end
