@@ -27,7 +27,7 @@ for file in *.gz; do
   TEMP_OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats.tmp/'`
   OUTPUT_FILE=`echo "processed/${file}" | sed 's/\.gz$/.stats/'`
   echo "Processing ${file} -> ${OUTPUT_FILE}"
-  (gzcat "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
+  (gzip -dc "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && mv "${TEMP_OUTPUT_FILE}" "${OUTPUT_FILE}"
 done
 
 cd $OLD_DIR
