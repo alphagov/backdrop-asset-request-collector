@@ -27,7 +27,7 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
   end
 
   def teardown
-    # FileUtils.remove_entry_secure(@tempdir)
+    FileUtils.remove_entry_secure(@tempdir)
   end
 
   def as_output_lines(input_lines)
