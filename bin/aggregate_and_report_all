@@ -47,7 +47,7 @@ dates = Dir[File.join(processed_dir, "*.stats.gz")].map do |file_path|
   else
     nil
   end
-end.compact.uniq
+end.compact.uniq.sort
 
 dates.each do |date|
   year = date[0..3]
