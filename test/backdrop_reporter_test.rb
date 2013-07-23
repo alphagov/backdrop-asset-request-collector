@@ -62,7 +62,13 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
     reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
     _, batch = reporter.payload_batches.first
-    RestClient.expects(:post).with(@backdrop_endpoint, MultiJson.dump(batch), anything)
+    RestClient::Request.expects(:execute).with(
+      has_entries(
+        method: :post,
+        url: @backdrop_endpoint,
+        payload: MultiJson.dump(batch),
+        headers: anything)
+    )
 
     reporter.report!
 

@@ -39,14 +39,18 @@ class BackdropReporter
     payload_batches.each do |file_date, batch|
       begin
         @logger.info "Posting #{batch.size} items for #{file_date}.."
-        options = {
+        headers = {
           content_type: :json,
-          accept: :json,
-          timeout: @timeout,
-          open_timeout: @open_timeout
+          accept: :json
         }
-        options.merge!(authorization: "Bearer #{@bearer_token}") if @bearer_token
-        response = RestClient.post(@backdrop_endpoint, MultiJson.dump(batch), options)
+        headers.merge!(authorization: "Bearer #{@bearer_token}") if @bearer_token
+        response = RestClient::Request.execute(
+          method: :post,
+          url: @backdrop_endpoint,
+          payload: MultiJson.dump(batch),
+          headers: headers,
+          timeout: @timeout,
+          open_timeout: @open_timeout)
         FileUtils.touch(File.join(@posted_dir, "#{file_date}.txt"))
         @logger.info ".. OK"
       rescue RestClient::Exception => e
