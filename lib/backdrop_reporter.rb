@@ -1,6 +1,8 @@
 require 'logger'
 require 'rest_client'
 require 'multi_json'
+require 'time'
+require 'date'
 
 class BackdropReporter
   def initialize(aggregated_dir, posted_dir, options = {})
@@ -23,7 +25,7 @@ class BackdropReporter
           count, url = line.strip.split("\t")
           {
             _id: "#{file_date}-#{url}",
-            _timestamp: file_date,
+            _timestamp: DateTime.parse("#{file_date} 00:00:00 +00:00").iso8601,
             count: count
           }
         end

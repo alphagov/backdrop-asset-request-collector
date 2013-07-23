@@ -40,7 +40,7 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
     only_expected_payload = [
       {
         _id: "2013-07-09-/example.com/example.pdf",
-        _timestamp: "2013-07-09",
+        _timestamp: "2013-07-09T00:00:00+00:00",
         count: "5"
       }
     ]
