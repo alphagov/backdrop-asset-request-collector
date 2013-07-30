@@ -30,7 +30,7 @@ for file in *.gz; do
   if [ "${file}" -nt "${OUTPUT_FILE}" ]; then
     echo "Processing ${file} -> ${OUTPUT_FILE}"
     (gzip -dc "${file}" | "${BIN_PATH}/process" > "${TEMP_OUTPUT_FILE}") && \
-      gzip -c "${TEMP_OUTPUT_FILE}" > "${TEMP_OUTPUT_FILE}.gz" && \
+      gzip "${TEMP_OUTPUT_FILE}" && \
       mv "${TEMP_OUTPUT_FILE}.gz" "${OUTPUT_FILE}"
   fi
 done
