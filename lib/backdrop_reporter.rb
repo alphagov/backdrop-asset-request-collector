@@ -3,6 +3,7 @@ require 'rest_client'
 require 'multi_json'
 require 'time'
 require 'date'
+require 'zlib'
 
 class BackdropReporter
   def initialize(aggregated_dir, posted_dir, options = {})
@@ -18,11 +19,11 @@ class BackdropReporter
 
   def payload_batches
     Enumerator.new do |yielder|
-      Dir[File.join(@aggregated_dir, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].txt")].reject do |path|
+      Dir[File.join(@aggregated_dir, "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].txt.gz")].reject do |path|
         already_posted?(path)
       end.map do |path|
-        file_date = File.basename(path, '.txt')
-        data_batch = File.open(path).map do |line|
+        file_date = File.basename(path, '.txt.gz')
+        data_batch = Zlib::GzipReader.open(path).map do |line|
           count, url = line.strip.split("\t")
           {
             _id: "#{file_date}-#{url}",
@@ -58,7 +59,7 @@ class BackdropReporter
             timeout: @timeout,
             open_timeout: @open_timeout)
         end
-        FileUtils.touch(File.join(@posted_dir, "#{file_date}.txt"))
+        FileUtils.touch(File.join(@posted_dir, "#{file_date}.txt.gz"))
         @logger.info ".. OK"
       rescue RestClient::Exception => e
         @logger.error "FAILED to post #{file_date} because #{e}"

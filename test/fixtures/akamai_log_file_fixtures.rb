@@ -30,9 +30,11 @@ module AkamaiLogFileFixtures
   def make_aggregate_file(name, data=nil, &block)
     path = "#{@aggregated_dir}/#{name}"
     File.open(path, 'w') do |f|
+      gz = Zlib::GzipWriter.new(f)
       (data || yield).each do |line|
-        f.write(line.join("\t") + "\n")
+        gz.write(line.join("\t") + "\n")
       end
+      gz.close
     end
     path
   end

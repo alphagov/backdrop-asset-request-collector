@@ -24,7 +24,7 @@ end
 pattern = File.join(processed_dir, '/*.{' + dates_to_consider.join(',') + '}*.stats.gz')
 files = Dir[pattern]
 
-output_file = "#{aggregate_dir}/#{date}.txt"
+output_file = "#{aggregate_dir}/#{date}.txt.gz"
 if !files.any?
   puts "No files found for date #{date}"
 elsif File.exist?(output_file) && files.all? { |f| File.mtime(f) <= File.mtime(output_file) }
@@ -33,5 +33,5 @@ else
   puts "Processing #{files.size} files for #{date}"
   ENV['LANG']='C'
   ENV['LC_ALL']='C'
-  exec %Q{gzip -dc #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk > "#{output_file}"}
+  exec %Q{gzip -dc #{files.join(" ")} | grep '^#{date}' | gawk -f #{__FILE__}.awk | gzip -c > "#{output_file}"}
 end

@@ -3,6 +3,7 @@ require 'minitest/autorun'
 require 'open3'
 require 'fileutils'
 require 'tmpdir'
+require 'zlib'
 
 $: << File.dirname(__FILE__)
 require 'helpers/command_line_invoker'
@@ -27,6 +28,10 @@ class AggregationTest < MiniTest::Unit::TestCase
     FileUtils.remove_entry_secure(@tempdir)
   end
 
+  def read_gz(gz_file)
+    Zlib::GzipReader.open(gz_file) {|f| f.read}
+  end
+
   def test_aggregating_one_log_file_creates_a_file_per_day_with_counts_per_url
     make_logfile("gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz") do
       [asset_line(status: 200, uri: "/example.com/foo.pdf")]
@@ -35,9 +40,9 @@ class AggregationTest < MiniTest::Unit::TestCase
 
     invoke(%Q{aggregate}, "", {}, [@processed_dir, @aggregated_dir, '2013-07-09'])
 
-    aggregate_file = File.join(@aggregated_dir, "2013-07-09.txt")
+    aggregate_file = File.join(@aggregated_dir, "2013-07-09.txt.gz")
     assert File.exist?(aggregate_file), "#{aggregate_file} should exist"
-    assert_equal "1\t/example.com/foo.pdf\n", File.read(aggregate_file)
+    assert_equal "1\t/example.com/foo.pdf\n", read_gz(aggregate_file)
   end
 
   def test_aggregating_multiple_log_files_merges_files_from_one_day_before_and_two_days_after
@@ -59,13 +64,13 @@ class AggregationTest < MiniTest::Unit::TestCase
     # there will have been one line for target_date in each of the in_range files
     expected_log_line_count = in_range_dates.size
 
-    aggregate_file = File.join(@aggregated_dir, "#{target_date}.txt")
-    assert_equal "#{expected_log_line_count}\t/example.com/foo.pdf\n", File.read(aggregate_file)
+    aggregate_file = File.join(@aggregated_dir, "#{target_date}.txt.gz")
+    assert_equal "#{expected_log_line_count}\t/example.com/foo.pdf\n", read_gz(aggregate_file)
   end
 
   def test_aggregating_does_not_regenerate_if_output_up_to_date
     make_logfile("gdslog_184926.esw3c_waf_S.201307092000-2400-1.gz") { [asset_line(date: "2013-07-09")] }
-    aggregate_file = make_aggregate_file("2013-07-09.txt", [])
+    aggregate_file = make_aggregate_file("2013-07-09.txt.gz", [])
     aggregate_file_mtime = Time.now + 1000
     FileUtils.touch(aggregate_file, mtime: aggregate_file_mtime)
     assert_similar_time aggregate_file_mtime, File.mtime(aggregate_file)

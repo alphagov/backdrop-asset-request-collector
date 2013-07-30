@@ -34,7 +34,7 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
   end
 
   def test_calculates_payload_batches_from_aggregated_data
-    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
+    make_aggregate_file("2013-07-09.txt.gz", [[5, '/example.com/example.pdf']])
     reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
     only_expected_payload = [
@@ -50,15 +50,15 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
   end
 
   def test_payload_batches_exclude_already_posted_files
-    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
-    FileUtils.touch(File.join(@posted_dir, "2013-07-09.txt"))
+    make_aggregate_file("2013-07-09.txt.gz", [[5, '/example.com/example.pdf']])
+    FileUtils.touch(File.join(@posted_dir, "2013-07-09.txt.gz"))
     reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
     assert_equal [], reporter.payload_batches.to_a
   end
 
   def test_posts_all_batches_and_touches_a_posting_file
-    make_aggregate_file("2013-07-09.txt", [[5, '/example.com/example.pdf']])
+    make_aggregate_file("2013-07-09.txt.gz", [[5, '/example.com/example.pdf']])
     reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
     _, batch = reporter.payload_batches.first
@@ -72,6 +72,6 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
 
     reporter.report!
 
-    assert_similar_time Time.now, File.mtime(File.join(@posted_dir, "2013-07-09.txt"))
+    assert_similar_time Time.now, File.mtime(File.join(@posted_dir, "2013-07-09.txt.gz"))
   end
 end
