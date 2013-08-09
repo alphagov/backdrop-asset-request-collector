@@ -25,13 +25,19 @@ function is_asset(url)
   return url_without_query_string(url) ~ /\.(pdf|csv|rtf|png|jpg|doc|docx|xls|xlsx|ppt|pptx|zip|rdf|txt|kml|odt|ods|xml|atom)$/
 }
 
+function normalise_url(url)
+{
+  url = url_without_query_string(url)
+  sub(/^\/www-origin.production.alphagov.co.uk\//, "www.gov.uk/", url)
+  return url
+}
+
 # Skip commented lines
 /^#/ { next }
 
 # Success lines
 $STATUS ~ /^(200|304)$/ && is_asset($URL) {
-  $URL = url_without_query_string($URL)
-  print $DATE, $URL
+  print $DATE, normalise_url($URL)
 }
 
 # Handle 206 responses
@@ -41,8 +47,7 @@ $STATUS ~ /^(200|304)$/ && is_asset($URL) {
 # quite common to see several hundred 206 responses for a PDF from the same IP
 # address.
 $STATUS == "206" && is_asset($URL) {
-  $URL = url_without_query_string($URL)
-  partial_responses[$DATE, $IP, $URL] += 1
+  partial_responses[$DATE, $IP, normalise_url($URL)] += 1
 }
 
 END {

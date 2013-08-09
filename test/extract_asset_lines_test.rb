@@ -27,9 +27,15 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
     FileUtils.remove_entry_secure(@tempdir)
   end
 
+  def normalize_uri_field(log_line)
+    date, uri = log_line.split("\t")
+    uri = uri.gsub(/\/www-origin\.production\.alphagov\.co\.uk\//, "www.gov.uk/")
+    [date, uri].join("\t")
+  end
+
   def as_output_lines(input_lines)
     input_lines.map do |input_line|
-      only_fields(%w{date uri}, input_line)
+      normalize_uri_field(only_fields(%w{date uri}, input_line))
     end
   end
 
@@ -43,7 +49,7 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
 
   def test_only_date_and_uri_output
     processed_lines = run_extract_asset_lines([asset_line])
-    assert_equal [only_fields(%w{date uri}, asset_line)], processed_lines
+    assert_equal as_output_lines([asset_line]), processed_lines
   end
 
   def test_comments_are_skipped
@@ -84,6 +90,7 @@ class ExtractAssetLinesTest < MiniTest::Unit::TestCase
       asset_line(date: "2013-07-08"),
       asset_line(date: "2013-07-08")
     ])
+
     assert_equal expected.sort, processed_lines.sort
   end
 

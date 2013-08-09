@@ -34,14 +34,14 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
   end
 
   def test_calculates_payload_batches_from_aggregated_data
-    make_aggregate_file("2013-07-09.txt.gz", [[5, '/example.com/example.pdf']])
+    make_aggregate_file("2013-07-09.txt.gz", [[5, 'www.gov.uk/example.pdf']])
     reporter = BackdropReporter.new(@aggregated_dir, @posted_dir, backdrop_endpoint: @backdrop_endpoint)
 
     only_expected_payload = [
       {
-        _id: "2013-07-09-/example.com/example.pdf",
+        _id: "2013-07-09-www.gov.uk/example.pdf",
         _timestamp: "2013-07-09T00:00:00+00:00",
-        url: '/example.com/example.pdf',
+        url: "www.gov.uk/example.pdf",
         count: "5"
       }
     ]
