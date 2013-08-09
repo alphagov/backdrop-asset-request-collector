@@ -28,6 +28,7 @@ class BackdropReporter
           {
             _id: "#{file_date}-#{url}",
             _timestamp: DateTime.parse("#{file_date} 00:00:00 +00:00").iso8601,
+            url: url,
             count: count
           }
         end

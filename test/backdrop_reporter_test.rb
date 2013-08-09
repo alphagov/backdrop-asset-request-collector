@@ -41,6 +41,7 @@ class BackdropReporterTest < MiniTest::Unit::TestCase
       {
         _id: "2013-07-09-/example.com/example.pdf",
         _timestamp: "2013-07-09T00:00:00+00:00",
+        url: '/example.com/example.pdf',
         count: "5"
       }
     ]
